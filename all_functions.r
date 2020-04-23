@@ -54,39 +54,71 @@ getOrderedNames <- function() {
                 , "socialjustice101", "SocJus", "WitchesVsPatriarchy")
   return(fnames)}
 
-getColors <- function(bluev, redv, equalv) {
-  color.list <- c(bluev = "#003f5c", redv = "#ff6361", equalv = "#bc5090")
+getColors <- function() {
+  color.list <- c(blue = "#003f5c", red = "#ff6361")
   return(color.list)}
 
 
 # NETWORK MEMBERSHIP  -------------------------------------------------------
-getMembership <- function(df) {
+getMonthYearMembership <- function(df) {
   df <- data %>% select(author, year, date, monthyear, class, subreddit)
-  authorGrouping <-  df %>% 
+  x <-  df %>% 
     group_by(author, monthyear, class) %>%
     summarise(weight=n()) %>%
     arrange(author)
-  red <- authorGrouping %>% 
+  red <- x %>% 
     filter(class=="red") %>% 
     group_by(author, monthyear)  %>% 
     rename(red_weight=weight)
-  blue <- authorGrouping %>% 
+  blue <- x %>% 
     filter(class=="blue") %>% 
     group_by(author, monthyear) %>% 
     rename(blue_weight=weight)
-  authorGrouping <- red %>% 
+  x <- red %>% 
     full_join(blue, by=c("author", "monthyear"))
-  authorGrouping <- authorGrouping %>% 
+  x <- x %>% 
     select(author, monthyear, red_weight, blue_weight) %>% 
     rename(rwt=red_weight) %>% rename(bwt=blue_weight) %>% 
     rename(date = monthyear)
-  authorGrouping$bwt[is.na(authorGrouping$bwt)] <- 0
-  authorGrouping$rwt[is.na(authorGrouping$rwt)] <- 0
-  authorGrouping$greater <- "equal"
-  authorGrouping$greater[authorGrouping$bwt > authorGrouping$rwt] <- "blue"
-  authorGrouping$greater[authorGrouping$rwt > authorGrouping$bwt] <- "red"
-  return(authorGrouping)}
+  x$bwt[is.na(x$bwt)] <- 0
+  x$rwt[is.na(x$rwt)] <- 0
+  x$greater <- "equal"
+  x$greater[x$bwt > x$rwt] <- "blue"
+  x$greater[x$rwt > x$bwt] <- "red"
+  x$year <- stri_extract_first_regex(x$date, "^[^-]+")
+  x$year <- as.Date(x$year, "%y")
+  x$year <- year(x$year)
+  return(x)}
 
+getYearMembership <- function(df) {
+  xr <- df %>% filter(greater=='red') %>% group_by(author,year) %>% summarise(red_wt = sum(rwt))
+  xb <- df %>% filter(greater=='blue') %>% group_by(author,year) %>% summarise(blue_wt = sum(bwt))
+  xe <- df %>% filter(greater=='equal') %>% group_by(author,year) %>% summarise(red_wt = sum(rwt), blue_wt=sum(bwt))
+  
+  xx <- xr %>% full_join(xb, by=c("author","year"))
+  xx <- xx %>% full_join(xe, by=c("author","year"))
+  colnames(xx) <- c('author', 'year', 'rwt', 'bwt', 'rwt1', 'bwt1')
+  xx$rwt[is.na(xx$rwt)] <- 0
+  xx$bwt[is.na(xx$bwt)] <- 0
+  xx$rwt1[is.na(xx$rwt1)] <- 0
+  xx$bwt1[is.na(xx$bwt1)] <- 0
+  
+  xx$rwt3 <- xx$rwt+xx$rwt1
+  xx$bwt3 <- xx$bwt+xx$bwt1
+  
+  xx <- xx %>% select(author, year, rwt3, bwt3) %>%
+    rename(bwt = bwt3) %>% rename(rwt=rwt3)
+  
+  xx$greater <- "equal"
+  xx$greater[xx$bwt > xx$rwt] <- "blue"
+  xx$greater[xx$rwt > xx$bwt] <- "red"
+  return(xx)}
+
+getProps <- function(df) {
+  df$total <- (df$rwt+df$bwt)
+  df$prop.red <- round((df$rwt/df$total),digits=2)
+  df$prop.blue <- round((df$bwt/df$total),digits=2)
+  return(df)}
 
 
 # TEXT ANALYSIS -----------------------------------------------------------
@@ -119,7 +151,6 @@ subset_quantiles <- function(df, up_q, low_q, perc) {
   colnames(d.f) <- c("text", "id", "subreddit", "year", "score", "author", "quantile_group")
   d.f$class <- "reddit"
   return(d.f)}
-
 
 combine_and_clean <- function(commentDF, txtDF) {
   commentDF <- commentDF %>% select(-score)
