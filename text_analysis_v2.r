@@ -37,13 +37,8 @@ data <- read.csv("comments_clean_df.csv", header=T, stringsAsFactors = F)
 txt <- read.csv("text_files_combined.csv", header=T, stringsAsFactors = F)
 
 # PREPARE DF --------------------------------------------------------------------
-x <- remove_empty(data)
-# for each subreddit, subset to only include top/bottom 10% scoring comments
-# and then sample 2% of those comments
-x <- subset_quantiles(x, .90, .10, .02)
-x <- combine_and_clean(x, txt) # should end up with 13,901 obs
-
-# SKIPGRM PROBABILITIES  --------------------------------------------------------------------
+%>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% %>% 
+  # SKIPGRM PROBABILITIES  --------------------------------------------------------------------
 
 # create context window with length 8
 tidy_skipgrams <- x %>%
