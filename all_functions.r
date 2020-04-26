@@ -3,7 +3,17 @@
  getOrderedNames()
  getColors"
 
-remove_empty <- function(df) {
+getcsv <- function(string) {
+  csv <- read.csv(string, header=T, stringsAsFactors = F)}
+
+keep_remove <- function(string) {rm(list=setdiff(ls(), string))} 
+
+getComments <- function() {
+  comments <- getcsv('clean_comments.csv')
+  return(comments)}
+
+import_clean_comments <- function() {
+  df <- getcsv('comments_clean_df.csv')
   df <- df %>% select(score, author, date, year, subreddit, id, body) %>% 
     filter(subreddit != "") %>% 
     filter(subreddit != "2.0") %>% 
@@ -140,14 +150,20 @@ quantile_filter <- function(df, up_q, low_q, perc) {
     return(d.f)}}
 
 subset_quantiles <- function(df, up_q, low_q, perc) {
-  subnames <- unique(df$subreddit)
   df <- df %>% select(body, id, subreddit, year, score, author)
+  df$nchar <- nchar(df$body)
+  df <- df[df$subreddit != "SocJus",]
+  df <- df[df$subreddit != "redpillmedia",]
+  df <- df[df$subreddit != "trpgame",]
+  subnames <- unique(df$subreddit)
+  df <- df[df$nchar > 1000,]
   subset_the_subreddits <- function(x) {
     print(paste0("working on r/", x))
     tmp <- df %>% filter(subreddit==x)
     sub <- quantile_filter(tmp, up_q, low_q, perc)
     return(sub)}
   d.f <- bind_rows(lapply(subnames,subset_the_subreddits))
+  d.f <- d.f %>% select(-nchar)
   colnames(d.f) <- c("text", "id", "subreddit", "year", "score", "author", "quantile_group")
   d.f$class <- "reddit"
   return(d.f)}
@@ -164,6 +180,10 @@ combine_and_clean <- function(commentDF, txtDF) {
   txtDF$class <- "canon"
   x <- rbind(commentDF, txtDF)
   x$text <- gsub("&gt;", " ", x$text)
+  x$text <- gsub("http", " ", x$text)
+  x$text <- gsub("www", " ", x$text)
+  x$text <- gsub("https", " ", x$text)
+  x$text <- gsub("amp", " ", x$text)
   x$text <- gsub("[[:punct:]]", " ", x$text) 
   x$text <- iconv(x$text, from = 'UTF-8', to = 'ASCII//TRANSLIT')
   x$text <- tolower(x$text)
@@ -182,3 +202,27 @@ search_synonyms <- function(word_vectors, selected_vector) {
     rename(token = .rownames, similarity = unrowname.x.)
   similarities %>% arrange(-similarity)}
 
+
+#source: https://www.markhw.com/blog/word-similarity-graphs
+cosine_matrix <- function(tokenized_data, lower = 0, upper = 1, filt = 0) {
+  if (!all(c("word", "id") %in% names(tokenized_data))) {
+    stop("tokenized_data must contain variables named word and id")}
+  if (lower < 0 | lower > 1 | upper < 0 | upper > 1 | filt < 0 | filt > 1) {
+    stop("lower, upper, and filt must be 0 <= x <= 1")}
+  docs <- length(unique(tokenized_data$id))
+  out <- tokenized_data %>%
+    count(id, word) %>%
+    group_by(word) %>%
+    mutate(n_docs = n()) %>%
+    ungroup() %>%
+    filter(n_docs < (docs * upper) & n_docs > (docs * lower)) %>%
+    select(-n_docs) %>%
+    mutate(n = 1) %>%
+    spread(word, n, fill = 0) %>%
+    select(-id) %>%
+    as.matrix() %>%
+    lsa::cosine()
+  filt <- quantile(out[lower.tri(out)], filt)
+  out[out < filt] <- diag(out) <- 0
+  out <- out[rowSums(out) != 0, colSums(out) != 0]
+  return(out)}
