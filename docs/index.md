@@ -1,2 +1,2 @@
 # test
-[test](https://github.com/sebolden/reddit/blob/master/docs/non_trp_heatmap.html)
+[test](https://sebolden.github.io/reddit/non_trp_heatmap.html)
