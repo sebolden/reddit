@@ -1,8 +1,4 @@
 # GENERAL -----------------------------------------------------------------
-"remove_empty(df)
- getOrderedNames()
- getColors"
-
 getcsv <- function(string) {
   csv <- read.csv(string, header=T, stringsAsFactors = F)}
 
@@ -12,17 +8,14 @@ getComments <- function() {
   comments <- getcsv('COMMENT_CSVS_BABY.csv')
   return(comments)}
 
-
 getColors <- function() {
   color.list <- c(blue = "#003f5c", red = "#ff6361")
   return(color.list)}
 
 # IMPORT AND CLEANUP  -------------------------------------------------------
 df_grouping <- function(all_data) {
-  
   # removing columns, e.g. those that aren't of interest; those with majority NA
   all_data <- all_data %>% select(-c(author_flair_background_color, author_flair_css_class, author_flair_richtext, author_flair_template_id, author_flair_type, author_patreon_flair, associated_award, collapsed_because_crowd_control, author_cakeday, steward_reports, can_gild, subreddit_name_prefixed, subreddit_type, rte_mode, treatment_tags, subreddit_id, reply_delay, nest_level, created))
-  
   # add binary columns that classify whether a comment has been deleted or removed
   all_data$deleted <- 0
   all_data$removed <- 0
@@ -30,7 +23,6 @@ df_grouping <- function(all_data) {
   all_data$removed[all_data$body=="[removed]"] <- 1
   all_data$deleted <- as.factor(all_data$deleted)
   all_data$removed <- as.factor(all_data$removed)
-  
   # the next chunk of code just cleans up factor/dummy variables
   # i end up ditching most of them 
   # but the code remains in case i ever return to them
@@ -86,19 +78,16 @@ df_grouping <- function(all_data) {
   all_data <- all_data %>% select(-edited)
   all_data$is_mod <- all_data$distinguished
   all_data <- all_data %>% select(-distinguished)
-  
   # convert utc to readable dates
   all_data$date <- as.POSIXct(all_data$created_utc, origin="1970-01-01")
   # add a column that specifies year only
   all_data$year <- year(all_data$date)
   # don't need the epoch version anymore
   all_data <- all_data %>% select(-created_utc)
-
   # i have way too much data so it's easier to just work with the absolute essentials
   # but skip this step if yr computer's RAM can tolerate it, i guess
   cleaned <- all_data %>% select(date,year,subreddit,author,score,id, parent_id,link_id,body,author_flair_text,author_fullname,gildings,is_submitter,locked,stickied,controversiality,is_edited,is_mod,deleted,removed)
   return(cleaned)}
-
 
 makeBabyDF <- function(df) {
   # subset to only include the very most bare minimum variables
@@ -174,12 +163,46 @@ getProps <- function(df) {
   df$prop.blue <- round((df$bwt/df$total),digits=2)
   return(df)}
 
+# USER CROSSOVER  -------------------------------------------------------
+xover_single <- function(UYstr,str) {
+  ux <- unique(data$author[data$subreddit==str]) 
+  uy <- unique(data$author[data$subreddit==UYstr]) 
+  val <- length(which(ux %in% uy))
+  uy_length <- length(uy)
+  perc <- ((val/uy_length)*100)
+  obj <- tibble(x_y=0, perc=0, x=0, y=0)
+  obj$x_y <- val
+  obj$perc <- perc
+  obj$x <- str
+  obj$y <- UYstr
+  return(obj)}
+
+getCrossoverDF <- function(df) {
+  subnames <- as.character(unique(df$subreddit))
+  f <- function(x) {
+    str1 <- x
+    print(str1)
+    snames <- as.character(unique(df$subreddit))
+    d.f <- bind_rows(lapply(snames,xover_single, str=str1))
+    return(d.f)}
+  df_final <- bind_rows(lapply(subnames,f))
+  df_final <- df_final %>% select(y, everything()) %>% select(x, everything())
+  return(df_final)}
+
+getCrossoverMatrix <- function(df) {
+  print("friendly reminder: this version of the matrix replaces 100.00 values with 0 to avoid within-subreddit cluttering in visualizations. remove the line before the return(xover) statement in the getCrossoverMatrix() function to keep 100.00 values.")
+  #df <- userdf(df)
+  df <- df %>% select(-'x_y') 
+  df <- pivot_wider(df, names_from = x, values_from = perc)
+  df <- as.data.frame(df)
+  rownames(df) <- df$y
+  df <- df %>% select(-y) 
+  df <- as.matrix(df)
+  df <- round(df, digits=2)
+  df <- ifelse(df==100.00,0,df)
+  return(df)}
 
 # TEXT ANALYSIS -----------------------------------------------------------
-"quantile_filter(df, up_q, low_q, perc)
- subset_quantiles(df, up_q, low_q, perc)
- combine_and_clean(commentDF, textDF)
- search_synonyms(word_vectors, selected_vector)"
 
 quantile_filter <- function(df, up_q, low_q, perc) {
   val <- nrow(df[df$score < quantile(df$score,low_q),])
@@ -237,36 +260,24 @@ combine_and_clean <- function(commentDF, txtDF) {
   x.clean <- x.clean[!is.na(x.clean$text),]
   return(x.clean)}
 
-# from Julia Silge
-# originally found at: https://cbail.github.io/textasdata/word2vec/rmarkdown/word2vec.html
-search_synonyms <- function(word_vectors, selected_vector) {
-  similarities <- word_vectors %*% selected_vector %>%
-    tidy() %>%
-    as_tibble() %>%
-    rename(token = .rownames, similarity = unrowname.x.)
-  similarities %>% arrange(-similarity)}
 
 
-#source: https://www.markhw.com/blog/word-similarity-graphs
-cosine_matrix <- function(tokenized_data, lower = 0, upper = 1, filt = 0) {
-  if (!all(c("word", "id") %in% names(tokenized_data))) {
-    stop("tokenized_data must contain variables named word and id")}
-  if (lower < 0 | lower > 1 | upper < 0 | upper > 1 | filt < 0 | filt > 1) {
-    stop("lower, upper, and filt must be 0 <= x <= 1")}
-  docs <- length(unique(tokenized_data$id))
-  out <- tokenized_data %>%
-    count(id, word) %>%
-    group_by(word) %>%
-    mutate(n_docs = n()) %>%
-    ungroup() %>%
-    filter(n_docs < (docs * upper) & n_docs > (docs * lower)) %>%
-    select(-n_docs) %>%
-    mutate(n = 1) %>%
-    spread(word, n, fill = 0) %>%
-    select(-id) %>%
-    as.matrix() %>%
-    lsa::cosine()
-  filt <- quantile(out[lower.tri(out)], filt)
-  out[out < filt] <- diag(out) <- 0
-  out <- out[rowSums(out) != 0, colSums(out) != 0]
-  return(out)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
