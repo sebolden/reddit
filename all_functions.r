@@ -263,6 +263,24 @@ combine_and_clean <- function(commentDF, txtDF) {
 
 
 
+txtclean <- function(txtDF) {
+  x <- txtDF %>% 
+    select(text, doc_id) %>% 
+    rename(id = doc_id)
+  x$text <- gsub("&gt;", " ", x$text)
+  x$text <- gsub("http", " ", x$text)
+  x$text <- gsub("www", " ", x$text)
+  x$text <- gsub("https", " ", x$text)
+  x$text <- gsub("â€“", " ", x$text)
+  x$text <- gsub("â€œ", " ", x$text)
+  x$text <- gsub("â€™", "", x$text)
+  x$text <- gsub("amp", " ", x$text)
+  x$text <- gsub("[[:punct:]]", "", x$text) 
+  x$text <- trimws(x$text)
+  x$text <- tolower(x$text)
+#    x <- x[!is.na(x$text),]
+  return(x)}
+
 
 
 
