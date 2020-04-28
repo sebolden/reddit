@@ -270,11 +270,6 @@ x$class[x$quantile_group=="low" & x$co=="blue"] <- 'blue_low'
 x$class <- as.factor(x$class)
 #nrow(x[x$class=="canon",])
 #write.csv(x, "subset_with_clusters.csv", row.names=F)
-myc <- c(  "red_high" = "#ff6361"
-           , "red_low" = "tomato4"
-           , "blue_high" = "#00abb6"
-           , "blue_low" = "#003f5c"
-           , "canon" = "#966f98")
 
 
 

@@ -4,125 +4,42 @@ getcsv <- function(string) {
 
 keep_remove <- function(string) {rm(list=setdiff(ls(), string))} 
 
-getComments <- function() {
-  comments <- getcsv('COMMENT_CSVS_BABY.csv')
-  return(comments)}
-
-getColors <- function() {
-  color.list <- c(blue = "#003f5c", red = "#ff6361")
+getColors <- function() {color.list <- c(blue = "#003f5c", red = "#ff6361")
   return(color.list)}
 
-getGroupss <- function(df) {
-  bb <- c("bropill", "PunchingMorpheus", "againstmensrights", "TheBluePill", "feminismformen", "TheMensCooperative", "MaleSupportNetwork", "MensLib","exredpill", "FeMRADebates")
-  rr <- c("asktrp", "RedPillRetention", "RedPillWorkplace", "marriedredpill", "RedPillNonMonogamy", "altTRP", "TRPOfftopic", "ThankTRP", "redpillbooks", "redpillmedia", "redpillmusic", "RedPillParenting", "RedPillWomen", "RedPillWives", "TheRedPill", "pussypassdenied", "TRPOffTopic")
+getGroups <- function(df) {
+  bb <- c("bropill", "PunchingMorpheus", "againstmensrights", "TheBluePill", "feminismformen"
+          , "TheMensCooperative", "MaleSupportNetwork", "MensLib","exredpill", "FeMRADebates")
+  rr <- c("asktrp", "RedPillRetention", "RedPillWorkplace", "marriedredpill", "RedPillNonMonogamy", "altTRP"
+          , "TRPOfftopic", "ThankTRP", "redpillbooks", "redpillmedia", "redpillmusic", "RedPillParenting"
+          , "RedPillWomen", "RedPillWives", "TheRedPill", "pussypassdenied", "TRPOffTopic")
   df$co[df$subreddit %in% bb] <- "blue"
   df$co[df$subreddit %in% rr] <- "red"
   return(df)}
 
-# IMPORT AND CLEANUP  -------------------------------------------------------
-df_grouping <- function(all_data) {
-  # removing columns, e.g. those that aren't of interest; those with majority NA
-  all_data <- all_data %>% select(-c(author_flair_background_color, author_flair_css_class, author_flair_richtext, author_flair_template_id, author_flair_type, author_patreon_flair, associated_award, collapsed_because_crowd_control, author_cakeday, steward_reports, can_gild, subreddit_name_prefixed, subreddit_type, rte_mode, treatment_tags, subreddit_id, reply_delay, nest_level, created))
-  # add binary columns that classify whether a comment has been deleted or removed
-  all_data$deleted <- 0
-  all_data$removed <- 0
-  all_data$deleted[all_data$body=="[deleted]"] <- 1
-  all_data$removed[all_data$body=="[removed]"] <- 1
-  all_data$deleted <- as.factor(all_data$deleted)
-  all_data$removed <- as.factor(all_data$removed)
-  # the next chunk of code just cleans up factor/dummy variables
-  # i end up ditching most of them 
-  # but the code remains in case i ever return to them
-  all_data$author_premium <- as.character(all_data$author_premium)
-  all_data$author_premium[all_data$author_premium=="True"] <- 1
-  all_data$author_premium[all_data$author_premium=="False"] <- 0
-  all_data$author_premium[all_data$author_premium==""] <- 0
-  all_data$author_premium <- as.factor(all_data$author_premium)
-  all_data$is_submitter[all_data$is_submitter=="True"] <- 1
-  all_data$is_submitter[all_data$is_submitter=="False"] <- 0
-  all_data$is_submitter[all_data$is_submitter==""] <- 0
-  all_data$is_submitter <- as.factor(all_data$is_submitter)
-  all_data$distinguished[all_data$distinguished=="Moderator"] <- 1
-  all_data$distinguished[all_data$distinguished==""] <- 0
-  all_data$distinguished <- as.factor(all_data$distinguished)
-  all_data$locked[all_data$locked=="True"] <- 1
-  all_data$locked[all_data$locked=="False"] <- 0
-  all_data$locked[all_data$locked==""] <- 0
-  all_data$locked <- as.factor(all_data$locked)
-  all_data$send_replies[all_data$send_replies=="True"] <- 1
-  all_data$send_replies[all_data$send_replies=="False"] <- 0
-  all_data$send_replies[all_data$send_replies=="0.0"] <- 0
-  all_data$send_replies[all_data$send_replies==""] <- 0
-  all_data$send_replies <- as.factor(all_data$send_replies)
-  all_data$subreddit <- as.factor(all_data$subreddit)
-  all_data$no_follow[all_data$no_follow=="True"] <- 1
-  all_data$no_follow[all_data$no_follow=="False"] <- 0
-  all_data$no_follow[all_data$no_follow=="1397532812.0"] <- 0
-  all_data$no_follow[all_data$no_follow==""] <- 0
-  all_data$no_follow <- as.factor(all_data$no_follow)
-  all_data$stickied[all_data$stickied=="True"] <- 1
-  all_data$stickied[all_data$stickied=="False"] <- 0
-  all_data$stickied[all_data$stickied=="0.0"] <- 0
-  all_data$stickied[all_data$stickied==""] <- 0
-  all_data$stickied <- as.factor(all_data$stickied)
-  all_data$collapsed[all_data$collapsed=="True"] <- 1
-  all_data$collapsed[all_data$collapsed=="False"] <- 0
-  all_data$collapsed[all_data$collapsed==""] <- 0
-  all_data$collapsed <- as.factor(all_data$collapsed)
-  all_data$controversiality <- as.factor(all_data$controversiality)
-  all_data$mod_removed[all_data$mod_removed=="True"] <- 1
-  all_data$mod_removed[all_data$mod_removed==""] <- 0
-  all_data$mod_removed <- as.factor(all_data$mod_removed)
-  all_data$user_removed[all_data$user_removed=="True"] <- 1
-  all_data$user_removed[all_data$user_removed==""] <- 0
-  all_data$user_removed <- as.factor(all_data$user_removed)
-  all_data$score_hidden[all_data$score_hidden=="True"] <- 1
-  all_data$score_hidden[all_data$score_hidden=="False"] <- 0
-  all_data$score_hidden[all_data$score_hidden==""] <- 0
-  all_data$score_hidden <- as.factor(all_data$score_hidden)
-  all_data$is_edited <- 0
-  all_data$is_edited[!is.na(all_data$edited)] <- 1
-  all_data <- all_data %>% select(-edited)
-  all_data$is_mod <- all_data$distinguished
-  all_data <- all_data %>% select(-distinguished)
-  # convert utc to readable dates
-  all_data$date <- as.POSIXct(all_data$created_utc, origin="1970-01-01")
-  # add a column that specifies year only
-  all_data$year <- year(all_data$date)
-  # don't need the epoch version anymore
-  all_data <- all_data %>% select(-created_utc)
-  # i have way too much data so it's easier to just work with the absolute essentials
-  # but skip this step if yr computer's RAM can tolerate it, i guess
-  cleaned <- all_data %>% select(date,year,subreddit,author,score,id, parent_id,link_id,body,author_flair_text,author_fullname,gildings,is_submitter,locked,stickied,controversiality,is_edited,is_mod,deleted,removed)
-  return(cleaned)}
-
 makeBabyDF <- function(df) {
-  # subset to only include the very most bare minimum variables
-  df <- df %>% select(date, year, author, id, link_id, parent_id, subreddit, score, body) %>% 
-    filter(subreddit != "") %>% 
-    filter(subreddit != "2.0") %>% 
-    filter(subreddit != "4.0") %>% 
-    filter(author != "[deleted]") %>% 
-    filter(author != "[removed]") %>% 
-    filter(body   != "[deleted]") %>% 
-    filter(body   != "[removed]") %>% 
-    filter(body   != "")
+  print('heads up: removing text data')
+  print('heads up: removing deleted users and content')
+  df <- df %>% 
+    select(date, year, author, id, link_id, parent_id, subreddit, score, author_flair_text, gildings
+           , is_submitter, locked, stickied, controversiality, is_edited, is_mod) %>% 
+    filter(subreddit != "") %>% filter(subreddit != "2.0") %>% filter(subreddit != "4.0") %>% 
+    filter(author != "[deleted]") %>% filter(author != "[removed]") %>% 
+    #filter(body != "[deleted]") %>% filter(body != "[removed]") %>% filter(body != "") %>% 
+    filter(year != 2014)
   return(df)}
 
-
 # BASIC NETWORK STUFF -------------------------------------------------------
-
-
 getLinks <- function(df) {
-  df <- df[df$author != "[deleted]",]
   df$parent_id <- str_remove(df$parent_id, "t3_")
   df$parent_id <- str_remove(df$parent_id, "t1_")
   c.author <- df %>% select(id, author) %>% rename(target_author=author)
   c.target <- df %>% select(id, parent_id, author) 
   output <- c.target %>% left_join(c.author, by=c("parent_id"="id"))
   colnames(output) <- c("original_comment_id", "parent_id", "parent_author", "target_author")
-  tmp <- data.frame(output$original_comment_id, output$target_author)
-  tmp$id <- as.character(df$id)
+  tmp <- tibble(output$original_comment_id, output$target_author)
+  colnames(tmp) <- c("id", "target_author")
+  tmp$id <- as.character(tmp$id)
   df$id <- as.character(df$id)
   obj <- df %>% left_join(tmp, by=c('id'))
   obj <- obj[!duplicated(obj$id),]
@@ -133,19 +50,19 @@ getLinks <- function(df) {
     rename(to = target_author)
   return(obj)}
   
-getNetworkMeasures <- function(x) {
-  s <- linx[linx$subreddit==x,]
-  s <- weightByOccurrence(s)
-  g <- makeGraph(s)
-  deg <- degree(g)
-  ei <- eigen_centrality(g)$vector
-  hs <- hub_score(g)$vector
-  co <- coreness(g)
-  clos <- closeness(g)
-  vals <- tibble(deg,ei,hs,co,clos)
-  colnames(vals) <- c("degree", "eigen", "hub", "core", "close")
-  vals$subreddit <- x
-  return(vals)}
+modByYear <- function(x) {
+  tmp <- linx %>% filter(year==x)
+  fname <- unique(tmp$subreddit)
+  modDF <- data.frame(numeric(0),numeric(0),numeric(0),character(0), stringsAsFactors=F)
+  year <- x
+  colnames(modDF) <- c("rel_modularity", "rep_modularity", "subreddit")
+  for (i in 1:26) {
+    rep.avg <- replies_modularity(tmp[tmp$subreddit==fname[i],])
+    rel.avg <- relationships_modularity(tmp[tmp$subreddit==fname[i],])
+    modDF[nrow(modDF)+1, ] <- c(rel.avg, rep.avg, year, fname[i])}
+  modDF$rel_modularity <- as.numeric(modDF$rel_modularity)
+  modDF$rep_modularity <- as.numeric(modDF$rep_modularity)
+  return(modDF)}
 
 # NETWORK MEMBERSHIP  -------------------------------------------------------
 getMonthYearMembership <- function(df) {
@@ -391,6 +308,82 @@ getCorr <- function(df) {
   return(tmp)}
 
 
+# IMPORT AND CLEANUP  -------------------------------------------------------
+df_grouping <- function(all_data) {
+  # removing columns, e.g. those that aren't of interest; those with majority NA
+  all_data <- all_data %>% select(-c(author_flair_background_color, author_flair_css_class, author_flair_richtext, author_flair_template_id, author_flair_type, author_patreon_flair, associated_award, collapsed_because_crowd_control, author_cakeday, steward_reports, can_gild, subreddit_name_prefixed, subreddit_type, rte_mode, treatment_tags, subreddit_id, reply_delay, nest_level, created))
+  # add binary columns that classify whether a comment has been deleted or removed
+  all_data$deleted <- 0
+  all_data$removed <- 0
+  all_data$deleted[all_data$body=="[deleted]"] <- 1
+  all_data$removed[all_data$body=="[removed]"] <- 1
+  all_data$deleted <- as.factor(all_data$deleted)
+  all_data$removed <- as.factor(all_data$removed)
+  # the next chunk of code just cleans up factor/dummy variables
+  # i end up ditching most of them 
+  # but the code remains in case i ever return to them
+  all_data$author_premium <- as.character(all_data$author_premium)
+  all_data$author_premium[all_data$author_premium=="True"] <- 1
+  all_data$author_premium[all_data$author_premium=="False"] <- 0
+  all_data$author_premium[all_data$author_premium==""] <- 0
+  all_data$author_premium <- as.factor(all_data$author_premium)
+  all_data$is_submitter[all_data$is_submitter=="True"] <- 1
+  all_data$is_submitter[all_data$is_submitter=="False"] <- 0
+  all_data$is_submitter[all_data$is_submitter==""] <- 0
+  all_data$is_submitter <- as.factor(all_data$is_submitter)
+  all_data$distinguished[all_data$distinguished=="Moderator"] <- 1
+  all_data$distinguished[all_data$distinguished==""] <- 0
+  all_data$distinguished <- as.factor(all_data$distinguished)
+  all_data$locked[all_data$locked=="True"] <- 1
+  all_data$locked[all_data$locked=="False"] <- 0
+  all_data$locked[all_data$locked==""] <- 0
+  all_data$locked <- as.factor(all_data$locked)
+  all_data$send_replies[all_data$send_replies=="True"] <- 1
+  all_data$send_replies[all_data$send_replies=="False"] <- 0
+  all_data$send_replies[all_data$send_replies=="0.0"] <- 0
+  all_data$send_replies[all_data$send_replies==""] <- 0
+  all_data$send_replies <- as.factor(all_data$send_replies)
+  all_data$subreddit <- as.factor(all_data$subreddit)
+  all_data$no_follow[all_data$no_follow=="True"] <- 1
+  all_data$no_follow[all_data$no_follow=="False"] <- 0
+  all_data$no_follow[all_data$no_follow=="1397532812.0"] <- 0
+  all_data$no_follow[all_data$no_follow==""] <- 0
+  all_data$no_follow <- as.factor(all_data$no_follow)
+  all_data$stickied[all_data$stickied=="True"] <- 1
+  all_data$stickied[all_data$stickied=="False"] <- 0
+  all_data$stickied[all_data$stickied=="0.0"] <- 0
+  all_data$stickied[all_data$stickied==""] <- 0
+  all_data$stickied <- as.factor(all_data$stickied)
+  all_data$collapsed[all_data$collapsed=="True"] <- 1
+  all_data$collapsed[all_data$collapsed=="False"] <- 0
+  all_data$collapsed[all_data$collapsed==""] <- 0
+  all_data$collapsed <- as.factor(all_data$collapsed)
+  all_data$controversiality <- as.factor(all_data$controversiality)
+  all_data$mod_removed[all_data$mod_removed=="True"] <- 1
+  all_data$mod_removed[all_data$mod_removed==""] <- 0
+  all_data$mod_removed <- as.factor(all_data$mod_removed)
+  all_data$user_removed[all_data$user_removed=="True"] <- 1
+  all_data$user_removed[all_data$user_removed==""] <- 0
+  all_data$user_removed <- as.factor(all_data$user_removed)
+  all_data$score_hidden[all_data$score_hidden=="True"] <- 1
+  all_data$score_hidden[all_data$score_hidden=="False"] <- 0
+  all_data$score_hidden[all_data$score_hidden==""] <- 0
+  all_data$score_hidden <- as.factor(all_data$score_hidden)
+  all_data$is_edited <- 0
+  all_data$is_edited[!is.na(all_data$edited)] <- 1
+  all_data <- all_data %>% select(-edited)
+  all_data$is_mod <- all_data$distinguished
+  all_data <- all_data %>% select(-distinguished)
+  # convert utc to readable dates
+  all_data$date <- as.POSIXct(all_data$created_utc, origin="1970-01-01")
+  # add a column that specifies year only
+  all_data$year <- year(all_data$date)
+  # don't need the epoch version anymore
+  all_data <- all_data %>% select(-created_utc)
+  # i have way too much data so it's easier to just work with the absolute essentials
+  # but skip this step if yr computer's RAM can tolerate it, i guess
+  cleaned <- all_data %>% select(date,year,subreddit,author,score,id, parent_id,link_id,body,author_flair_text,author_fullname,gildings,is_submitter,locked,stickied,controversiality,is_edited,is_mod,deleted,removed)
+  return(cleaned)}
 
 
 

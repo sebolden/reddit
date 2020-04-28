@@ -12,29 +12,42 @@ x <- getcsv('subset_with_clusters.csv')
 colnames(x)
 #"score" "id"             "subreddit"      "quantile_group" "year"           "text"           "author"         "cluster"       
 #[9] "top_words"      "co"             "class"         
+myc <- c(  "red_high" = "#ff6361"
+           , "red_low" = "tomato4"
+           , "blue_high" = "#00abb6"
+           , "blue_low" = "#003f5c"
+           , "canon" = "#966f98")
 
-ggplot(x,aes(year, cluster, color=class)) +
-  geom_jitter(alpha=.4) +
-  #geom_label_repel(aes(label=cluster), size=3) +
-  scale_color_manual(values=myc) 
+df <- x[x$year != "canon",]
+df <- df[df$year!="2014",]
 
-x <- x %>% left_join(cnames,by="cluster")
-x$name <- as.factor(x$name)
-
-c10 <- x[x$cluster<11,]
-c20 <- x[x$cluster<21 & x$cluster>10,]
-c30 <- x[x$cluster<31 & x$cluster>20,]
-c40 <- x[x$cluster<41 & x$cluster>30,]
-c50 <- x[x$cluster>41,]
+c10 <- df[df$cluster<11,]
+c20 <- df[df$cluster<21 & df$cluster>10,]
+c30 <- df[df$cluster<31 & df$cluster>20,]
+c40 <- df[df$cluster<41 & df$cluster>30,]
+c50 <- df[df$cluster>41,]
 #colnames(x)
+sub_score <- c10 %>% group_by(subreddit,year,score,cluster,top_words,class) %>% summarise(avg.score = mean(score))
+colnames(sub_score)
+
+sub_score <- sub_score[order(sub_score$avg.score), ]  # sort
 
 # did this for all 5 DFs to get the combined plot
-ggplot(c10,aes(year, score, fill=subcol)) +
-  geom_bar(position='dodge', stat='identity') +
-  facet_wrap(~name,nrow=2) +
+ggplot(sub_score,aes(class, avg.score, fill=class)) +
+  geom_bar(position='dodge',stat='identity') +
+  facet_wrap(~top_words,nrow=2) +
   theme_fivethirtyeight() +
   scale_fill_manual(values=myc) +
   ggtitle("subreddit group & cluster: score ranges over time", subtitle="clusters 1-10")
+
+
+
+
+
+ggplot(c10, aes(x=year, y=score, fill=class)) + 
+  geom_bar(stat="identity", width=.5) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
 rm(c10,c20,c30,c40,c50)
 
 
