@@ -12,6 +12,13 @@ getColors <- function() {
   color.list <- c(blue = "#003f5c", red = "#ff6361")
   return(color.list)}
 
+getGroupss <- function(df) {
+  bb <- c("bropill", "PunchingMorpheus", "againstmensrights", "TheBluePill", "feminismformen", "TheMensCooperative", "MaleSupportNetwork", "MensLib","exredpill", "FeMRADebates")
+  rr <- c("asktrp", "RedPillRetention", "RedPillWorkplace", "marriedredpill", "RedPillNonMonogamy", "altTRP", "TRPOfftopic", "ThankTRP", "redpillbooks", "redpillmedia", "redpillmusic", "RedPillParenting", "RedPillWomen", "RedPillWives", "TheRedPill", "pussypassdenied", "TRPOffTopic")
+  df$co[df$subreddit %in% bb] <- "blue"
+  df$co[df$subreddit %in% rr] <- "red"
+  return(df)}
+
 # IMPORT AND CLEANUP  -------------------------------------------------------
 df_grouping <- function(all_data) {
   # removing columns, e.g. those that aren't of interest; those with majority NA
@@ -101,6 +108,44 @@ makeBabyDF <- function(df) {
     filter(body   != "[removed]") %>% 
     filter(body   != "")
   return(df)}
+
+
+# BASIC NETWORK STUFF -------------------------------------------------------
+
+
+getLinks <- function(df) {
+  df <- df[df$author != "[deleted]",]
+  df$parent_id <- str_remove(df$parent_id, "t3_")
+  df$parent_id <- str_remove(df$parent_id, "t1_")
+  c.author <- df %>% select(id, author) %>% rename(target_author=author)
+  c.target <- df %>% select(id, parent_id, author) 
+  output <- c.target %>% left_join(c.author, by=c("parent_id"="id"))
+  colnames(output) <- c("original_comment_id", "parent_id", "parent_author", "target_author")
+  tmp <- data.frame(output$original_comment_id, output$target_author)
+  tmp$id <- as.character(df$id)
+  df$id <- as.character(df$id)
+  obj <- df %>% left_join(tmp, by=c('id'))
+  obj <- obj[!duplicated(obj$id),]
+  obj <- obj[!is.na(obj$target_author),]
+  obj <- obj %>% select(target_author, everything()) %>% 
+    select(author, everything()) %>% 
+    rename(from = author) %>% 
+    rename(to = target_author)
+  return(obj)}
+  
+getNetworkMeasures <- function(x) {
+  s <- linx[linx$subreddit==x,]
+  s <- weightByOccurrence(s)
+  g <- makeGraph(s)
+  deg <- degree(g)
+  ei <- eigen_centrality(g)$vector
+  hs <- hub_score(g)$vector
+  co <- coreness(g)
+  clos <- closeness(g)
+  vals <- tibble(deg,ei,hs,co,clos)
+  colnames(vals) <- c("degree", "eigen", "hub", "core", "close")
+  vals$subreddit <- x
+  return(vals)}
 
 # NETWORK MEMBERSHIP  -------------------------------------------------------
 getMonthYearMembership <- function(df) {
@@ -202,9 +247,53 @@ getCrossoverMatrix <- function(df) {
   df <- ifelse(df==100.00,0,df)
   return(df)}
 
+
+# JOSHS FUNCTIONS ---------------------------------------------------------
+
+weightByOccurrence<-function(data) {
+  data$to <- as.character(data$to)
+  data %>% rename(src=from) %>% rename(target=to) %>% 
+      mutate(direction = pmin(src,target) == src)%>%
+      mutate(s2 = pmin(src,target),target = pmax(src,target),src=s2) %>%    
+      group_by(src,target) %>%
+      summarise(weight=n()) %>%
+      ungroup() %>%
+      arrange(-weight)}
+  
+getRelationships <- function(df) {
+  tmp <- df %>% rename(src=from) %>% rename(target=to)
+  tmp$src <- as.character(tmp$src)
+  tmp$target <- as.character(tmp$target)
+  tmp <- tmp %>% mutate(direction = pmin(src,target) == src)%>%
+    mutate(s2 = pmin(src,target),target = pmax(src,target),src=s2) %>%
+    group_by(link_id,src,target) %>%
+    summarise(weight = min(sum(direction),sum(!direction))) %>% filter(weight > 0) %>% ungroup() %>%
+    group_by(src,target) %>% summarise(weight=sum(weight)) %>% arrange(-weight)
+  return(tmp)}
+
+relationships_modularity <- function(linkedDF) {
+  forum.rel <- getRelationships(linkedDF) ## ** MIGHT NOT BE THE RIGHT FUNCTION **
+  relationships.graph <- makeGraph(forum.rel)
+  relationships.modularity <- cluster_louvain(relationships.graph)
+  relationships.mean <- mean(relationships.modularity$modularity)
+  return(relationships.mean)}
+
+replies_modularity <- function(linkedDF) {
+  forum.rep <- weightByOccurrence(linkedDF) ## ** MIGHT NOT BE THE RIGHT FUNCTION **
+  replies.graph <- makeGraph(forum.rep)
+  replies.modularity <- cluster_louvain(replies.graph)
+  replies.mean <- mean(replies.modularity$modularity)
+  return(replies.mean)}
+
+makeGraph<-function(data) {
+    g <- graph_from_data_frame(data, directed=F)
+    V(g)$degree_centrality <- centr_degree(g)$res
+    return(g)}
+
 # TEXT ANALYSIS -----------------------------------------------------------
 
 quantile_filter <- function(df, up_q, low_q, perc) {
+  set.seed(12345)
   val <- nrow(df[df$score < quantile(df$score,low_q),])
   high <- df[df$score > quantile(df$score,up_q),]
   high$quantile_group <- "high"
@@ -217,22 +306,30 @@ quantile_filter <- function(df, up_q, low_q, perc) {
     return(d.f)}}
 
 subset_quantiles <- function(df, up_q, low_q, perc) {
-  df <- df %>% select(body, id, subreddit, year, score, author)
-  df$nchar <- nchar(df$body)
-  df <- df[df$subreddit != "SocJus",]
-  df <- df[df$subreddit != "redpillmedia",]
-  df <- df[df$subreddit != "trpgame",]
+  # remove subreddits who won't meet any of the quantile filtering criteria
+  df <- df %>% filter(subreddit !="redpillmedia") %>% 
+    filter(subreddit != "trpgame") %>% 
+    filter(subreddit != "TheMensCooperative") %>% 
+    filter(subreddit != "RedPillNonMonogamy")
+  # get a list of unique subreddit names
   subnames <- unique(df$subreddit)
-  df <- df[df$nchar > 1000,]
-  subset_the_subreddits <- function(x) {
-    print(paste0("working on r/", x))
-    tmp <- df %>% filter(subreddit==x)
-    sub <- quantile_filter(tmp, up_q, low_q, perc)
-    return(sub)}
+  # work w just the essentials
+  # add # of characters/comment to DF
+  df$nchar <- nchar(df$body)
+  # only keep comments with more than 1k char
+  df <- df[df$nchar > 1000,] 
+      # run e/t through the quantiles function
+      subset_the_subreddits <- function(x) {
+        print(paste0("working on r/", x))
+        tmp <- df %>% filter(subreddit==x)
+        sub <- quantile_filter(tmp, up_q, low_q, perc)
+        return(sub)}
+  # combine all the subreddit data
   d.f <- bind_rows(lapply(subnames,subset_the_subreddits))
+  # don't need character # anymore
   d.f <- d.f %>% select(-nchar)
+  # fix colnames
   colnames(d.f) <- c("text", "id", "subreddit", "year", "score", "author", "quantile_group")
-  d.f$class <- "reddit"
   return(d.f)}
 
 combine_and_clean <- function(commentDF, txtDF) {
@@ -241,32 +338,10 @@ combine_and_clean <- function(commentDF, txtDF) {
     select(text, doc_id) %>% 
     rename(id = doc_id)
   txtDF$subreddit <- "canon"
-  txtDF$year <- "not_applicable"
-  txtDF$author <- "not_applicable"
-  txtDF$quantile_group <- "not_applicable"
-  txtDF$class <- "canon"
+  txtDF$year <- "canon"
+  txtDF$author <- "canon"
+  txtDF$quantile_group <- "canon"
   x <- rbind(commentDF, txtDF)
-  x$text <- gsub("&gt;", " ", x$text)
-  x$text <- gsub("http", " ", x$text)
-  x$text <- gsub("www", " ", x$text)
-  x$text <- gsub("https", " ", x$text)
-  x$text <- gsub("amp", " ", x$text)
-  x$text <- gsub("[[:punct:]]", " ", x$text) 
-  x$text <- iconv(x$text, from = 'UTF-8', to = 'ASCII//TRANSLIT')
-  x$text <- tolower(x$text)
-  x.clean <- x %>%
-    mutate(text = str_replace_all(text, " ?(f|ht)tp(s?)://(.*)[.][a-z]+", "")) %>%
-    select(id, subreddit, quantile_group, year, text, author)
-  x.clean <- x.clean[!is.na(x.clean$text),]
-  return(x.clean)}
-
-
-
-
-txtclean <- function(txtDF) {
-  x <- txtDF %>% 
-    select(text, doc_id) %>% 
-    rename(id = doc_id)
   x$text <- gsub("&gt;", " ", x$text)
   x$text <- gsub("http", " ", x$text)
   x$text <- gsub("www", " ", x$text)
@@ -276,17 +351,44 @@ txtclean <- function(txtDF) {
   x$text <- gsub("â€™", "", x$text)
   x$text <- gsub("amp", " ", x$text)
   x$text <- gsub("[[:punct:]]", "", x$text) 
-  x$text <- trimws(x$text)
   x$text <- tolower(x$text)
-#    x <- x[!is.na(x$text),]
-  return(x)}
+  x$text <- trimws(x$text)
+  x.clean <- x %>%
+    mutate(text = str_replace_all(text, " ?(f|ht)tp(s?)://(.*)[.][a-z]+", "")) %>%
+    select(id, subreddit, quantile_group, year, text, author)
+  x.clean <- x.clean[!is.na(x.clean$text),]
+  return(x.clean)}
 
+getCorr <- function(df) {
+  df <- df %>% select(id, everything()) %>% 
+    select(class, everything()) %>% 
+    select(-c(subreddit,quantile_group,author,year,co,logscore))
+  rh <- df %>% filter(class=="red_high")
+  rl <- df %>% filter(class=="red_low")
+  bh <- df %>% filter(class=="blue_high")
+  bl <- df %>% filter(class=="blue_low")
+  
+  mrh <- rh[,3:214]
+  mbh <- bh[,3:214]
+  mrl <- rl[,3:214]
+  mbl <- bl[,3:214]
 
-
-
-
-
-
+  crh <- as.data.frame(cor(mrh))
+  crh <- crh[-1,]
+  crl <- as.data.frame(cor(mrl))
+  crl <- crl[-1,]
+  cbh <- as.data.frame(cor(mbh))
+  cbh <- cbh[-1,]
+  cbl <- as.data.frame(cor(mbl))
+  cbl <- cbl[-1,]
+  
+  cbl$class <- "blue_low"
+  crl$class <- "red_low"
+  cbh$class <- "blue_high"
+  crh$class <- "red_high"
+  
+  tmp <- rbind(crh,cbh,crl,cbl)
+  return(tmp)}
 
 
 
