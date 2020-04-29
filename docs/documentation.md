@@ -1,4 +1,4 @@
-# Data collection
+# DATA COLLECTION
 
 Data were collected in *python* using the functions below. Full Python scripts are available here. Original data _and_ cleaned CSVs are available in the RedditS20 Google Drive. 
 
@@ -8,13 +8,14 @@ Data were collected in *python* using the functions below. Full Python scripts a
 **Comment collection**
 `getcomments('SUBREDDITNAME')`
 
-# All-purpose functions
+# R FUNCTIONS
+R code for these functions is available [here](https://github.com/sebolden/reddit/blob/master/all_functions.r).
 
 * `getcsv(string)`
   * `string`: The name of a CSV file in string format, e.g. `comments.csv`
   * Literally just a shortcut function for `read.csv()`
 
-# Data cleaning & prepping
+## Data cleaning & prepping
 
 ### Quick access 
 ```{r}
@@ -50,7 +51,13 @@ Comments were cleaned using the below set of functions:
    * `commentDF`: Comment data frame, ideally one that has been passed through `makeBabyDF()`. 
    * `txtDF`: Data frame with canon documents
  
-   
+ ## Data analysis
+ 
+ ### Text
+ some words and things will end up here
+ 
+ ### Network
+additional things n words will go here
    
    
    
