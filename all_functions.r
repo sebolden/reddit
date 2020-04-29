@@ -104,17 +104,17 @@ makeBabyDF <- function(df) {
   return(df)}
 
 
-combineCommentsAndCanon <- function(commentDF, txtDF) {
+combineCommentsAndCanon <- function(commentDF, canonDF) {
   commentDF <- commentDF %>% select(-score)
-  txtDF <- txtDF %>% 
+  canonDF <- canonDF %>% 
     select(text, doc_id) %>% 
     rename(id = doc_id)
-  txtDF$subreddit <- "canon"
-  txtDF$year <- "not_applicable"
-  txtDF$author <- "not_applicable"
-  txtDF$quantile_group <- "not_applicable"
-  txtDF$class <- "canon"
-  x <- rbind(commentDF, txtDF)
+  canonDF$subreddit <- "canon"
+  canonDF$year <- "not_applicable"
+  canonDF$author <- "not_applicable"
+  canonDF$quantile_group <- "not_applicable"
+  canonDF$class <- "canon"
+  x <- rbind(commentDF, canonDF)
   x$text <- gsub("&gt;", " ", x$text)
   x$text <- gsub("http", " ", x$text)
   x$text <- gsub("www", " ", x$text)

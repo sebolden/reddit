@@ -21,10 +21,7 @@ opts_chunk$set(echo=FALSE,
                message=FALSE,
                warning=FALSE)
 opts_knit$set(width=75)
-```
-
-```{r, echo = FALSE}
-data <- read.csv('trp_nw_full.csv', header=T, stringsAsFactors = F)
+#data <- read.csv('trp_nw_full.csv', header=T, stringsAsFactors = F)
 ```
 
 
@@ -32,45 +29,89 @@ data <- read.csv('trp_nw_full.csv', header=T, stringsAsFactors = F)
 
 Please be aware that the ananlysis and methods detailed here deal exclusively with comment data. Beyond the DATA COLLECTION section, all functions, code, and analysis work with the Reddit comment dataset. Future analysis will likely adapt some of the methods outlined here to process and analyze post content as well. 
 
-# QUICK ACCESS
+## Quick access
 
-The following two sections (DATA COLLECTION / DATA WRANGLING) describe how the original comment CSVs were processed and assembled. A pre-processed CSV with comment data for all subreddits of interest is avaialble in the RedditS20 Google Drive ('trp_nw_full.csv'). Combined canon documents are also available ('text_files_combined.csv'). If you're working directly from these CSVs, you can skip directly to section **X** **NAME**.
+Sections 1 and 2 describe how the original comment CSVs were collected, processed, and assembled. A pre-processed CSV with comment data for all subreddits of interest is avaialble in the RedditS20 Google Drive ('trp_nw_full.csv'). Combined canon documents are also available ('text_files_combined.csv'). If you're working directly from these CSVs, running the below lines of code -- which draw on several functions from all_functions.r -- let you can skip directly to section **X** **NAME**.
 
-# DATA COLLECTION
+```
+# comment data
+data <- getcsv('trp_nw_full.csv')
+babyDF <- makeBabyDF(data)
+canonDF <- getcsv('text_files_combined.csv')
+```
+
+# 1. DATA COLLECTION
 
 Data were collected in Python using the functions `getposts(subreddit)` and `getcomments(subreddit)`, which scraped the inputted subreddit's posts and comments via [Pushshift](). These functions, available in full [here](), use a start date of 01-01-2015; the end date is the date when the function is run. Folders containing the original post and comment CSVs for each subreddit are available in the RedditS20 Google Drive. Content in these folders were collected in two phases in 2020: one in mid-March, and one in mid-April. 
 
 ## Subreddits scraped
 
 More subreddits were scraped than were used for the final version of this project. Comments from the following subreddits were included in the wrangling process to produce the 'trp_nw_full' CSV:
-```{r}
-knitr::kable(unique(data$subreddit))
+```{r, echo = F}
+subs <- c("altTRP", "asktrp", "redpillbooks", "redpillmedia", "redpillmusic", "RedPillParenting", "RedPillWomen", "RedPillWives", "ThankTRP", "TheRedPill", "TRPOffTopic", "pussypassdenied", "RedPillNonMonogamy", "RedPillRetention", "RedPillWorkplace", "bropill", "exredpill", "FeMRADebates", "MaleSupportNetwork", "MensLib", "PunchingMorpheus", "againstmensrights", "feminismformen", "marriedredpill", "TheBluePill", "TheMensCooperative")
+knitr::kable(subs)
 ```
 
-# DATA WRANGLING 
+# 2. DATA WRANGLING 
 
-```{r}
+`cleanAllComments(all_data)` 
 
+> `all_data`: An original comment DF -- that is, one where all the subreddit comments have been combined, but have not undergone additional preprocessing steps.
 
+> Strips away unnecessary variables; standardizes dummy and factor variables; creates new dummy variables for deleted/removed comments; converts epoch 'created' utc to readable date format; adds a variable to ID comment year; removes glitchy data, e.g. several rows with innacurate subreddit names. <br> <br>When the combined comments are passed through this function, it effectively becomes 'trp_nw_full.csv'. Subsequent functions below therefore use 'comment DF' to refer to the DF (or CSV) that has already been passed through this function.</br> </br>
 
+`makeBabyDF(df)` 
 
-```
+> `df`: Comment DF. 
 
-
-
-
-
-
-
+> Main purpose is to create a smaller DF with fewer columns, making it easier for R to handle on computers with limited RAM. Filters larger comment DF to only include the following variables: date, year, author, id, link_id, parent_id, subreddit, score, body. <br> <br>Secondary purpose is to standardize subsequent analysis by removing deleted/removed comments and authors from the data frame (that is, data processed in textual analysis is the same data used in network analysis).</br> </br>
 
 
+# 3. TEXT ANALYSIS
+[placeholder]
+
+### 3.1 Pre-processing
+
+`subsetQuantiles(df, up_q, low_q, perc)`
+
+> `df`: A comment DF. <br><br>`up_q`: Upper quantile, e.g. 0.95 represents the top 5% of comments (by score) for a given subreddit.</br><br>`low_q`: Lower quantile, e.g. 0.05 represents the bottom 5% of comments (by score) for a given subreddit.</br><br>`perc`: Percentage of subsetted comments to sample from a given subreddit, e.g. 0.05 will take 5% of the comments from a subreddit's upper quantile and 5% of comments from a subreddit's lower quantile.</br>
+
+> Used to systematize the sampling process for text analysis. Though the quantiles and sample % can be customized, the function is designed to randomly sample a set of comments from the top X% (highest-scoring) and bottom X% (lowest-scoring) comments from each subreddit. A sample percentage is included in addition to the quantile values to make it easy to adjust the volume of comments that are sampled; as with other functions, this is mainly to prevent my computer from trying to murder me for using all of my available RAM during analysis.
 
 
+`combineCommentsAndCanon(commentDF, canonDF)`
 
+> `commentDF`: A copy of the comment DF that has been passed through `subsetQuantiles()`.<br>`txtDF`: An imported DF of the 'text_files_combined' CSV.</br>
 
+> Merges the comment DF and canon DF; performs basic text pre-processing steps (converts to lowercase, converts UTF characters to ASCI, removes URL strings, removes punctuation). The resulting DF is used for text analysis. 
 
+### 3.2 Cosine matrix analysis
+[placeholder]
 
+### 3.3 Hierarchical clustering
+[placeholder]
 
+# 4. Network analysis
+[placeholder]
+
+### 4.1 Creating an edgelist
+
+`getLinks(df)`
+
+> `df`: A (baby) comment DF.
+
+> Creates an edgelist by mapping source usernames/ids with target ids. It is important to note that usernames are not available for deleted users. Since this function uses usernames to create an edgelist, comments produced by deleted users are dropped from the dataset. The resulting DF is a basic, unweighted edgelist. The DF preserves as much node (source)-level metadata as possible.
+
+_Optional steps for weighting the edgelist:_
+
+### 4.2 Basic network stats
+[placeholder]
+
+### 4.3 Crossover analysis
+[placeholder]
+
+### 4.4 Membership analysis
+[placeholder]
 
 
 
