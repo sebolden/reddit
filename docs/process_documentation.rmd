@@ -1,0 +1,91 @@
+---
+title: ""
+date: "`r Sys.Date()`"
+output:
+  rmdformats::html_docco:
+    highlight: kate
+---
+
+
+```{r setup, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+               cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r, echo = FALSE}
+data <- read.csv('trp_nw_full.csv', header=T, stringsAsFactors = F)
+```
+
+
+# Intro / outline
+
+Please be aware that the ananlysis and methods detailed here deal exclusively with comment data. Beyond the DATA COLLECTION section, all functions, code, and analysis work with the Reddit comment dataset. Future analysis will likely adapt some of the methods outlined here to process and analyze post content as well. 
+
+# QUICK ACCESS
+
+The following two sections (DATA COLLECTION / DATA WRANGLING) describe how the original comment CSVs were processed and assembled. A pre-processed CSV with comment data for all subreddits of interest is avaialble in the RedditS20 Google Drive ('trp_nw_full.csv'). Combined canon documents are also available ('text_files_combined.csv'). If you're working directly from these CSVs, you can skip directly to section **X** **NAME**.
+
+# DATA COLLECTION
+
+Data were collected in Python using the functions `getposts(subreddit)` and `getcomments(subreddit)`, which scraped the inputted subreddit's posts and comments via [Pushshift](). These functions, available in full [here](), use a start date of 01-01-2015; the end date is the date when the function is run. Folders containing the original post and comment CSVs for each subreddit are available in the RedditS20 Google Drive. Content in these folders were collected in two phases in 2020: one in mid-March, and one in mid-April. 
+
+## Subreddits scraped
+
+More subreddits were scraped than were used for the final version of this project. Comments from the following subreddits were included in the wrangling process to produce the 'trp_nw_full' CSV:
+```{r}
+knitr::kable(unique(data$subreddit))
+```
+
+# DATA WRANGLING 
+
+```{r}
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
