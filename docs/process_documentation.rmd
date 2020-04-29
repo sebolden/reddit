@@ -26,19 +26,36 @@ opts_knit$set(width=75)
 
 
 # Intro / outline
-
-Please be aware that the ananlysis and methods detailed here deal exclusively with comment data. Beyond the DATA COLLECTION section, all functions, code, and analysis work with the Reddit comment dataset. Future analysis will likely adapt some of the methods outlined here to process and analyze post content as well. 
+Please be aware that the ananlysis and methods detailed here deal exclusively with comment data. Beyond section 1 (data collection), all functions, code, and analysis work with the Reddit comment dataset. Future analysis will likely adapt some of the methods outlined here to process and analyze post content as well. 
 
 ## Quick access
-
-Sections 1 and 2 describe how the original comment CSVs were collected, processed, and assembled. A pre-processed CSV with comment data for all subreddits of interest is avaialble in the RedditS20 Google Drive ('trp_nw_full.csv'). Combined canon documents are also available ('text_files_combined.csv'). If you're working directly from these CSVs, running the below lines of code -- which draw on several functions from all_functions.r -- let you can skip directly to section **X** **NAME**.
-
+Sections 1 and 2 describe how the original comment CSVs were collected, processed, and assembled. A pre-processed CSV with comment data for all subreddits of interest is avaialble in the RedditS20 Google Drive ('trp_nw_full.csv'). Combined canon documents are also available ('text_files_combined.csv'). If you're working directly from these CSVs, running the below lines of code -- which draw on several functions from [all_functions.r](https://github.com/sebolden/reddit/blob/master/all_functions.r) -- allows you skip directly to section 3.
 ```
 # comment data
 data <- getcsv('trp_nw_full.csv')
 babyDF <- makeBabyDF(data)
 canonDF <- getcsv('text_files_combined.csv')
 ```
+
+# RANDOM / ASSORTED FUNCTIONS 
+The below functions are used periodically throughout all forms of analysis.
+
+`getcsv(string)`
+
+> `string`: the name of the csv you want to load, e.g. 'trp_nw_full.csv'
+
+> Literally just a shortcut for read.csv(string, header=T, stringsAsFactors=F). :D
+
+`keep_remove(string)` 
+
+> `string`: a string with the name of the object you want to KEEP.
+
+> Removes everything from the global environment EXCEPT the object named in the inputted string.
+
+
+`getColors()`
+
+> When run on its own, spits out the corresponding HEX codes for red & blue forums. When assigned to a variable, the function stores a named list of the colors. This can be used in the `scale_color_manual` and `scale_fill_manual` sections of ggplots.
 
 # 1. DATA COLLECTION
 
@@ -70,7 +87,7 @@ knitr::kable(subs)
 # 3. TEXT ANALYSIS
 [placeholder]
 
-### 3.1 Pre-processing
+## 3.1 Pre-processing
 
 `subsetQuantiles(df, up_q, low_q, perc)`
 
@@ -85,16 +102,16 @@ knitr::kable(subs)
 
 > Merges the comment DF and canon DF; performs basic text pre-processing steps (converts to lowercase, converts UTF characters to ASCI, removes URL strings, removes punctuation). The resulting DF is used for text analysis. 
 
-### 3.2 Cosine matrix analysis
+## 3.2 Cosine matrix analysis
 [placeholder]
 
-### 3.3 Hierarchical clustering
+## 3.3 Hierarchical clustering
 [placeholder]
 
 # 4. Network analysis
 [placeholder]
 
-### 4.1 Creating an edgelist
+## 4.1 Creating an edgelist
 
 `getLinks(df)`
 
@@ -104,13 +121,13 @@ knitr::kable(subs)
 
 _Optional steps for weighting the edgelist:_
 
-### 4.2 Basic network stats
+## 4.2 Basic network stats
 [placeholder]
 
-### 4.3 Crossover analysis
+## 4.3 Crossover analysis
 [placeholder]
 
-### 4.4 Membership analysis
+## 4.4 Membership analysis
 [placeholder]
 
 

@@ -816,15 +816,37 @@ img {
 <div id="content">
 <div id="intro-outline" class="section level1">
 <h1>Intro / outline</h1>
-<p>Please be aware that the ananlysis and methods detailed here deal exclusively with comment data. Beyond the DATA COLLECTION section, all functions, code, and analysis work with the Reddit comment dataset. Future analysis will likely adapt some of the methods outlined here to process and analyze post content as well.</p>
+<p>Please be aware that the ananlysis and methods detailed here deal exclusively with comment data. Beyond section 1 (data collection), all functions, code, and analysis work with the Reddit comment dataset. Future analysis will likely adapt some of the methods outlined here to process and analyze post content as well.</p>
 <div id="quick-access" class="section level2">
 <h2>Quick access</h2>
-<p>Sections 1 and 2 describe how the original comment CSVs were collected, processed, and assembled. A pre-processed CSV with comment data for all subreddits of interest is avaialble in the RedditS20 Google Drive (‘trp_nw_full.csv’). Combined canon documents are also available (‘text_files_combined.csv’). If you’re working directly from these CSVs, running the below lines of code – which draw on several functions from all_functions.r – let you can skip directly to section <strong>X</strong> <strong>NAME</strong>.</p>
+<p>Sections 1 and 2 describe how the original comment CSVs were collected, processed, and assembled. A pre-processed CSV with comment data for all subreddits of interest is avaialble in the RedditS20 Google Drive (‘trp_nw_full.csv’). Combined canon documents are also available (‘text_files_combined.csv’). If you’re working directly from these CSVs, running the below lines of code – which draw on several functions from <a href="https://github.com/sebolden/reddit/blob/master/all_functions.r">all_functions.r</a> – allows you skip directly to section 3.</p>
 <pre><code># comment data
 data &lt;- getcsv(&#39;trp_nw_full.csv&#39;)
 babyDF &lt;- makeBabyDF(data)
 canonDF &lt;- getcsv(&#39;text_files_combined.csv&#39;)</code></pre>
 </div>
+</div>
+<div id="random-assorted-functions" class="section level1">
+<h1>RANDOM / ASSORTED FUNCTIONS</h1>
+<p>The below functions are used periodically throughout all forms of analysis.</p>
+<p><code>getcsv(string)</code></p>
+<blockquote>
+<p><code>string</code>: the name of the csv you want to load, e.g. ‘trp_nw_full.csv’</p>
+</blockquote>
+<blockquote>
+<p>Literally just a shortcut for read.csv(string, header=T, stringsAsFactors=F). :D</p>
+</blockquote>
+<p><code>keep_remove(string)</code></p>
+<blockquote>
+<p><code>string</code>: a string with the name of the object you want to KEEP.</p>
+</blockquote>
+<blockquote>
+<p>Removes everything from the global environment EXCEPT the object named in the inputted string.</p>
+</blockquote>
+<p><code>getColors()</code></p>
+<blockquote>
+<p>When run on its own, spits out the corresponding HEX codes for red &amp; blue forums. When assigned to a variable, the function stores a named list of the colors. This can be used in the <code>scale_color_manual</code> and <code>scale_fill_manual</code> sections of ggplots.</p>
+</blockquote>
 </div>
 <div id="data-collection" class="section level1">
 <h1>1. DATA COLLECTION</h1>
@@ -941,8 +963,8 @@ canonDF &lt;- getcsv(&#39;text_files_combined.csv&#39;)</code></pre>
 <div id="text-analysis" class="section level1">
 <h1>3. TEXT ANALYSIS</h1>
 <p>[placeholder]</p>
-<div id="pre-processing" class="section level3">
-<h3>3.1 Pre-processing</h3>
+<div id="pre-processing" class="section level2">
+<h2>3.1 Pre-processing</h2>
 <p><code>subsetQuantiles(df, up_q, low_q, perc)</code></p>
 <blockquote>
 <p><code>df</code>: A comment DF. <br><br><code>up_q</code>: Upper quantile, e.g. 0.95 represents the top 5% of comments (by score) for a given subreddit.</br><br><code>low_q</code>: Lower quantile, e.g. 0.05 represents the bottom 5% of comments (by score) for a given subreddit.</br><br><code>perc</code>: Percentage of subsetted comments to sample from a given subreddit, e.g. 0.05 will take 5% of the comments from a subreddit’s upper quantile and 5% of comments from a subreddit’s lower quantile.</br></p>
@@ -958,19 +980,20 @@ canonDF &lt;- getcsv(&#39;text_files_combined.csv&#39;)</code></pre>
 <p>Merges the comment DF and canon DF; performs basic text pre-processing steps (converts to lowercase, converts UTF characters to ASCI, removes URL strings, removes punctuation). The resulting DF is used for text analysis.</p>
 </blockquote>
 </div>
-<div id="cosine-matrix-analysis" class="section level3">
-<h3>3.2 Cosine matrix analysis</h3>
+<div id="cosine-matrix-analysis" class="section level2">
+<h2>3.2 Cosine matrix analysis</h2>
 <p>[placeholder]</p>
 </div>
-<div id="hierarchical-clustering" class="section level3">
-<h3>3.3 Hierarchical clustering</h3>
+<div id="hierarchical-clustering" class="section level2">
+<h2>3.3 Hierarchical clustering</h2>
 <p>[placeholder]</p>
 </div>
-<div id="network-analysis" class="section level2">
-<h2>4. Network analysis</h2>
+</div>
+<div id="network-analysis" class="section level1">
+<h1>4. Network analysis</h1>
 <p>[placeholder]</p>
-<div id="creating-an-edgelist" class="section level3">
-<h3>4.1 Creating an edgelist</h3>
+<div id="creating-an-edgelist" class="section level2">
+<h2>4.1 Creating an edgelist</h2>
 <p><code>getLinks(df)</code></p>
 <blockquote>
 <p><code>df</code>: A (baby) comment DF.</p>
@@ -980,18 +1003,17 @@ canonDF &lt;- getcsv(&#39;text_files_combined.csv&#39;)</code></pre>
 </blockquote>
 <p><em>Optional steps for weighting the edgelist:</em></p>
 </div>
-<div id="basic-network-stats" class="section level3">
-<h3>4.2 Basic network stats</h3>
+<div id="basic-network-stats" class="section level2">
+<h2>4.2 Basic network stats</h2>
 <p>[placeholder]</p>
 </div>
-<div id="crossover-analysis" class="section level3">
-<h3>4.3 Crossover analysis</h3>
+<div id="crossover-analysis" class="section level2">
+<h2>4.3 Crossover analysis</h2>
 <p>[placeholder]</p>
 </div>
-<div id="membership-analysis" class="section level3">
-<h3>4.4 Membership analysis</h3>
+<div id="membership-analysis" class="section level2">
+<h2>4.4 Membership analysis</h2>
 <p>[placeholder]</p>
-</div>
 </div>
 </div>
 </div>

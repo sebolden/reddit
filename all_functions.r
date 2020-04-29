@@ -103,31 +103,6 @@ makeBabyDF <- function(df) {
     filter(body   != "")
   return(df)}
 
-
-combineCommentsAndCanon <- function(commentDF, canonDF) {
-  commentDF <- commentDF %>% select(-score)
-  canonDF <- canonDF %>% 
-    select(text, doc_id) %>% 
-    rename(id = doc_id)
-  canonDF$subreddit <- "canon"
-  canonDF$year <- "not_applicable"
-  canonDF$author <- "not_applicable"
-  canonDF$quantile_group <- "not_applicable"
-  canonDF$class <- "canon"
-  x <- rbind(commentDF, canonDF)
-  x$text <- gsub("&gt;", " ", x$text)
-  x$text <- gsub("http", " ", x$text)
-  x$text <- gsub("www", " ", x$text)
-  x$text <- gsub("https", " ", x$text)
-  x$text <- gsub("amp", " ", x$text)
-  x$text <- gsub("[[:punct:]]", " ", x$text) 
-  x$text <- iconv(x$text, from = 'UTF-8', to = 'ASCII//TRANSLIT')
-  x$text <- tolower(x$text)
-  x.clean <- x %>%
-    mutate(text = str_replace_all(text, " ?(f|ht)tp(s?)://(.*)[.][a-z]+", "")) %>%
-    select(id, subreddit, quantile_group, year, text, author)
-  x.clean <- x.clean[!is.na(x.clean$text),]
-  return(x.clean)}
 # BASIC NETWORK STUFF -------------------------------------------------------
 
 
@@ -316,6 +291,30 @@ subset_quantiles <- function(df, up_q, low_q, perc) {
   return(d.f)}
 
 
+combineCommentsAndCanon <- function(commentDF, canonDF) {
+  commentDF <- commentDF %>% select(-score)
+  canonDF <- canonDF %>% 
+    select(text, doc_id) %>% 
+    rename(id = doc_id)
+  canonDF$subreddit <- "canon"
+  canonDF$year <- "not_applicable"
+  canonDF$author <- "not_applicable"
+  canonDF$quantile_group <- "not_applicable"
+  canonDF$class <- "canon"
+  x <- rbind(commentDF, canonDF)
+  x$text <- gsub("&gt;", " ", x$text)
+  x$text <- gsub("http", " ", x$text)
+  x$text <- gsub("www", " ", x$text)
+  x$text <- gsub("https", " ", x$text)
+  x$text <- gsub("amp", " ", x$text)
+  x$text <- gsub("[[:punct:]]", " ", x$text) 
+  x$text <- iconv(x$text, from = 'UTF-8', to = 'ASCII//TRANSLIT')
+  x$text <- tolower(x$text)
+  x.clean <- x %>%
+    mutate(text = str_replace_all(text, " ?(f|ht)tp(s?)://(.*)[.][a-z]+", "")) %>%
+    select(id, subreddit, quantile_group, year, text, author)
+  x.clean <- x.clean[!is.na(x.clean$text),]
+  return(x.clean)}
 
 
 
