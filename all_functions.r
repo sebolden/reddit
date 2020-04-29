@@ -128,69 +128,120 @@ combineCommentsAndCanon <- function(commentDF, txtDF) {
     select(id, subreddit, quantile_group, year, text, author)
   x.clean <- x.clean[!is.na(x.clean$text),]
   return(x.clean)}
+# BASIC NETWORK STUFF -------------------------------------------------------
+
+
+getLinks <- function(df) {
+  df$parent_id <- str_remove(df$parent_id, "t3_")
+  df$parent_id <- str_remove(df$parent_id, "t1_")
+  c.author <- df %>% select(id, author) %>% rename(target_author=author)
+  c.target <- df %>% select(id, parent_id, author) 
+  output <- c.target %>% left_join(c.author, by=c("parent_id"="id"))
+  colnames(output) <- c("original_comment_id", "parent_id", "parent_author", "target_author")
+  tmp <- tibble(output$original_comment_id, output$target_author)
+  colnames(tmp) <- c("id", "target_author")
+  tmp$id <- as.character(tmp$id)
+  df$id <- as.character(df$id)
+  obj <- df %>% left_join(tmp, by=c('id'))
+  obj <- obj[!duplicated(obj$id),]
+  obj <- obj[!is.na(obj$target_author),]
+  obj <- obj %>% select(target_author, everything()) %>% 
+    select(author, everything()) %>% 
+    rename(from = author) %>% 
+    rename(to = target_author)
+  return(obj)}
+
+# JOSHS FUNCTIONS ---------------------------------------------------------
+
+weightByOccurrence<-function(data) {
+  data$to <- as.character(data$to)
+  data %>% rename(src=from) %>% rename(target=to) %>% 
+    mutate(direction = pmin(src,target) == src)%>%
+    mutate(s2 = pmin(src,target),target = pmax(src,target),src=s2) %>%    
+    group_by(src,target) %>%
+    summarise(weight=n()) %>%
+    ungroup() %>%
+    arrange(-weight)}
+
+getRelationships <- function(df) {
+  tmp <- df %>% rename(src=from) %>% rename(target=to)
+  tmp$src <- as.character(tmp$src)
+  tmp$target <- as.character(tmp$target)
+  tmp <- tmp %>% mutate(direction = pmin(src,target) == src)%>%
+    mutate(s2 = pmin(src,target),target = pmax(src,target),src=s2) %>%
+    group_by(link_id,src,target) %>%
+    summarise(weight = min(sum(direction),sum(!direction))) %>% filter(weight > 0) %>% ungroup() %>%
+    group_by(src,target) %>% summarise(weight=sum(weight)) %>% arrange(-weight)
+  return(tmp)}
+
+relationships_modularity <- function(linkedDF) {
+  forum.rel <- getRelationships(linkedDF) ## ** MIGHT NOT BE THE RIGHT FUNCTION **
+  relationships.graph <- makeGraph(forum.rel)
+  relationships.modularity <- cluster_louvain(relationships.graph)
+  relationships.mean <- mean(relationships.modularity$modularity)
+  return(relationships.mean)}
+
+replies_modularity <- function(linkedDF) {
+  forum.rep <- weightByOccurrence(linkedDF) ## ** MIGHT NOT BE THE RIGHT FUNCTION **
+  replies.graph <- makeGraph(forum.rep)
+  replies.modularity <- cluster_louvain(replies.graph)
+  replies.mean <- mean(replies.modularity$modularity)
+  return(replies.mean)}
+
+makeGraph<-function(data) {
+  g <- graph_from_data_frame(data, directed=F)
+  V(g)$degree_centrality <- centr_degree(g)$res
+  return(g)}
 
 
 
 # NETWORK MEMBERSHIP  -------------------------------------------------------
-getMonthYearMembership <- function(df) {
-  df <- data %>% select(author, year, date, monthyear, class, subreddit)
-  x <-  df %>% 
-    group_by(author, monthyear, class) %>%
-    summarise(weight=n()) %>%
-    arrange(author)
-  red <- x %>% 
-    filter(class=="red") %>% 
-    group_by(author, monthyear)  %>% 
-    rename(red_weight=weight)
-  blue <- x %>% 
-    filter(class=="blue") %>% 
-    group_by(author, monthyear) %>% 
-    rename(blue_weight=weight)
+getMembership <- function(df) {
+  z <- df %>% select(author, year, class, subreddit)
+  z$date <- z$year
+  z <- as.data.frame(z)
+  q <-  z %>% 
+    group_by(author, date, class, subreddit) %>%
+    summarise(sub_weight=n())
+  red <- q %>% 
+    filter(class=="red")
+  red$rwt <- red$sub_weight
+  red <- red %>% select(-sub_weight)
+  blue <- q %>% 
+    filter(class=="blue") 
+  blue$bwt <- blue$sub_weight
+  blue <- blue %>% select(-sub_weight)
   x <- red %>% 
-    full_join(blue, by=c("author", "monthyear"))
+    full_join(blue, by=c("author", "date"))
   x <- x %>% 
-    select(author, monthyear, red_weight, blue_weight) %>% 
-    rename(rwt=red_weight) %>% rename(bwt=blue_weight) %>% 
-    rename(date = monthyear)
+    select(author, date, rwt, bwt)
   x$bwt[is.na(x$bwt)] <- 0
   x$rwt[is.na(x$rwt)] <- 0
   x$greater <- "equal"
   x$greater[x$bwt > x$rwt] <- "blue"
   x$greater[x$rwt > x$bwt] <- "red"
-  x$year <- stri_extract_first_regex(x$date, "^[^-]+")
-  x$year <- as.Date(x$year, "%y")
-  x$year <- year(x$year)
+  x$total <- (x$rwt+x$bwt)
+  x$prop.red <- round((x$rwt/x$total),digits=2)
+  x$prop.blue <- round((x$bwt/x$total),digits=2)
   return(x)}
 
-getYearMembership <- function(df) {
-  xr <- df %>% filter(greater=='red') %>% group_by(author,year) %>% summarise(red_wt = sum(rwt))
-  xb <- df %>% filter(greater=='blue') %>% group_by(author,year) %>% summarise(blue_wt = sum(bwt))
-  xe <- df %>% filter(greater=='equal') %>% group_by(author,year) %>% summarise(red_wt = sum(rwt), blue_wt=sum(bwt))
-  
-  xx <- xr %>% full_join(xb, by=c("author","year"))
-  xx <- xx %>% full_join(xe, by=c("author","year"))
-  colnames(xx) <- c('author', 'year', 'rwt', 'bwt', 'rwt1', 'bwt1')
-  xx$rwt[is.na(xx$rwt)] <- 0
-  xx$bwt[is.na(xx$bwt)] <- 0
-  xx$rwt1[is.na(xx$rwt1)] <- 0
-  xx$bwt1[is.na(xx$bwt1)] <- 0
-  
-  xx$rwt3 <- xx$rwt+xx$rwt1
-  xx$bwt3 <- xx$bwt+xx$bwt1
-  
-  xx <- xx %>% select(author, year, rwt3, bwt3) %>%
-    rename(bwt = bwt3) %>% rename(rwt=rwt3)
-  
-  xx$greater <- "equal"
-  xx$greater[xx$bwt > xx$rwt] <- "blue"
-  xx$greater[xx$rwt > xx$bwt] <- "red"
-  return(xx)}
 
-getProps <- function(df) {
-  df$total <- (df$rwt+df$bwt)
-  df$prop.red <- round((df$rwt/df$total),digits=2)
-  df$prop.blue <- round((df$bwt/df$total),digits=2)
-  return(df)}
+# MODULARITY --------------------------------------------------------------
+
+modByYear <- function(x) {
+  tmp <- linx %>% filter(year==x)
+  fname <- unique(tmp$subreddit)
+  modDF <- data.frame(numeric(0),numeric(0),numeric(0),character(0), stringsAsFactors=F)
+  year <- x
+  colnames(modDF) <- c("rel_modularity", "rep_modularity", "subreddit")
+  for (i in 1:26) {
+    rep.avg <- replies_modularity(tmp[tmp$subreddit==fname[i],])
+    rel.avg <- relationships_modularity(tmp[tmp$subreddit==fname[i],])
+    modDF[nrow(modDF)+1, ] <- c(rel.avg, rep.avg, year, fname[i])}
+  modDF$rel_modularity <- as.numeric(modDF$rel_modularity)
+  modDF$rep_modularity <- as.numeric(modDF$rep_modularity)
+  return(modDF)}
+
 
 # USER CROSSOVER  -------------------------------------------------------
 xover_single <- function(UYstr,str) {
