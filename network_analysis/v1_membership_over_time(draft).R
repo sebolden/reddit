@@ -44,8 +44,10 @@ pp <- ggplot() +
   #geom_line(aes(date, avg.score), alpha=.5, color="black") +
   scale_color_manual(values=myc) +
   facet_wrap(~date) +
+  ggtitle("log score by log proportion of user comments/year that belong to 'red' subreddits", subtitle="blue comments are comments where the proportion of 'red' comments  is >0.5") +
   #scale_size(range=c(1,6)) +
   theme_fivethirtyeight() 
+
 pp
 
 
@@ -54,7 +56,6 @@ pp
 ggplot(mv, aes(x=class, y=avg.score)) +
   geom_boxplot() +
   theme_bw()
-
 
 
 
