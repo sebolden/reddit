@@ -12,87 +12,6 @@ getColors <- function() {
   color.list <- c(blue = "#003f5c", red = "#ff6361")
   return(color.list)}
 
-# IMPORT AND CLEANUP  -------------------------------------------------------
-cleanAllComments <- function(all_data) {
-  # removing columns, e.g. those that aren't of interest; those with majority NA
-  all_data <- all_data %>% select(-c(author_flair_background_color, author_flair_css_class, author_flair_richtext, author_flair_template_id, author_flair_type, author_patreon_flair, associated_award, collapsed_because_crowd_control, author_cakeday, steward_reports, can_gild, subreddit_name_prefixed, subreddit_type, rte_mode, treatment_tags, subreddit_id, reply_delay, nest_level, created))
-  # add binary columns that classify whether a comment has been deleted or removed
-  all_data$deleted <- 0
-  all_data$removed <- 0
-  all_data$deleted[all_data$body=="[deleted]"] <- 1
-  all_data$removed[all_data$body=="[removed]"] <- 1
-  all_data$deleted <- as.factor(all_data$deleted)
-  all_data$removed <- as.factor(all_data$removed)
-  # the next chunk of code just cleans up factor/dummy variables
-  # i end up ditching most of them 
-  # but the code remains in case i ever return to them
-  all_data$author_premium <- as.character(all_data$author_premium)
-  all_data$author_premium[all_data$author_premium=="True"] <- 1
-  all_data$author_premium[all_data$author_premium=="False"] <- 0
-  all_data$author_premium[all_data$author_premium==""] <- 0
-  all_data$author_premium <- as.factor(all_data$author_premium)
-  all_data$is_submitter[all_data$is_submitter=="True"] <- 1
-  all_data$is_submitter[all_data$is_submitter=="False"] <- 0
-  all_data$is_submitter[all_data$is_submitter==""] <- 0
-  all_data$is_submitter <- as.factor(all_data$is_submitter)
-  all_data$distinguished[all_data$distinguished=="Moderator"] <- 1
-  all_data$distinguished[all_data$distinguished==""] <- 0
-  all_data$distinguished <- as.factor(all_data$distinguished)
-  all_data$locked[all_data$locked=="True"] <- 1
-  all_data$locked[all_data$locked=="False"] <- 0
-  all_data$locked[all_data$locked==""] <- 0
-  all_data$locked <- as.factor(all_data$locked)
-  all_data$send_replies[all_data$send_replies=="True"] <- 1
-  all_data$send_replies[all_data$send_replies=="False"] <- 0
-  all_data$send_replies[all_data$send_replies=="0.0"] <- 0
-  all_data$send_replies[all_data$send_replies==""] <- 0
-  all_data$send_replies <- as.factor(all_data$send_replies)
-  all_data$subreddit <- as.factor(all_data$subreddit)
-  all_data$no_follow[all_data$no_follow=="True"] <- 1
-  all_data$no_follow[all_data$no_follow=="False"] <- 0
-  all_data$no_follow[all_data$no_follow=="1397532812.0"] <- 0
-  all_data$no_follow[all_data$no_follow==""] <- 0
-  all_data$no_follow <- as.factor(all_data$no_follow)
-  all_data$stickied[all_data$stickied=="True"] <- 1
-  all_data$stickied[all_data$stickied=="False"] <- 0
-  all_data$stickied[all_data$stickied=="0.0"] <- 0
-  all_data$stickied[all_data$stickied==""] <- 0
-  all_data$stickied <- as.factor(all_data$stickied)
-  all_data$collapsed[all_data$collapsed=="True"] <- 1
-  all_data$collapsed[all_data$collapsed=="False"] <- 0
-  all_data$collapsed[all_data$collapsed==""] <- 0
-  all_data$collapsed <- as.factor(all_data$collapsed)
-  all_data$controversiality <- as.factor(all_data$controversiality)
-  all_data$mod_removed[all_data$mod_removed=="True"] <- 1
-  all_data$mod_removed[all_data$mod_removed==""] <- 0
-  all_data$mod_removed <- as.factor(all_data$mod_removed)
-  all_data$user_removed[all_data$user_removed=="True"] <- 1
-  all_data$user_removed[all_data$user_removed==""] <- 0
-  all_data$user_removed <- as.factor(all_data$user_removed)
-  all_data$score_hidden[all_data$score_hidden=="True"] <- 1
-  all_data$score_hidden[all_data$score_hidden=="False"] <- 0
-  all_data$score_hidden[all_data$score_hidden==""] <- 0
-  all_data$score_hidden <- as.factor(all_data$score_hidden)
-  all_data$is_edited <- 0
-  all_data$is_edited[!is.na(all_data$edited)] <- 1
-  all_data <- all_data %>% select(-edited)
-  all_data$is_mod <- all_data$distinguished
-  all_data <- all_data %>% select(-distinguished)
-  # convert utc to readable dates
-  all_data$date <- as.POSIXct(all_data$created_utc, origin="1970-01-01")
-  # add a column that specifies year only
-  all_data$year <- year(all_data$date)
-  # don't need the epoch version anymore
-  all_data <- all_data %>% select(-created_utc)
-  # i have way too much data so it's easier to just work with the absolute essentials
-  # but skip this step if yr computer's RAM can tolerate it, i guess
-  cleaned <- all_data %>% select(date,year,subreddit,author,score,id, parent_id,link_id,body,author_flair_text,author_fullname,gildings,is_submitter,locked,stickied,controversiality,is_edited,is_mod,deleted,removed)
-  cleaned <- cleaned %>% filter(subreddit != "") %>% 
-    filter(subreddit != "2.0") %>% 
-    filter(subreddit != "4.0") %>% 
-    
-  return(cleaned)}
-
 makeBabyDF <- function(df) {
   # subset to only include the very most bare minimum variables
   df <- df %>% select(date, year, author, id, link_id, parent_id, subreddit, score, body) %>% 
@@ -104,8 +23,6 @@ makeBabyDF <- function(df) {
   return(df)}
 
 # BASIC NETWORK STUFF -------------------------------------------------------
-
-
 getLinks <- function(df) {
   df$parent_id <- str_remove(df$parent_id, "t3_")
   df$parent_id <- str_remove(df$parent_id, "t1_")
@@ -125,6 +42,17 @@ getLinks <- function(df) {
     rename(from = author) %>% 
     rename(to = target_author)
   return(obj)}
+
+getYearlyMetrics <- function() {
+  mod <- getModByYear()
+  deg <- getDegreeByYear()
+  df <- mod %>% left_join(deg, by = c('year', 'subreddit'))
+  return(df)}
+
+makeGraph<-function(data) {
+  g <- graph_from_data_frame(data, directed=F)
+  V(g)$degree_centrality <- centr_degree(g)$res
+  return(g)}
 
 # JOSHS FUNCTIONS ---------------------------------------------------------
 
@@ -150,45 +78,32 @@ getRelationships <- function(df) {
   return(tmp)}
 
 relationships_modularity <- function(linkedDF) {
-  forum.rel <- getRelationships(linkedDF) ## ** MIGHT NOT BE THE RIGHT FUNCTION **
+  forum.rel <- getRelationships(linkedDF)
   relationships.graph <- makeGraph(forum.rel)
   relationships.modularity <- cluster_louvain(relationships.graph)
   relationships.mean <- mean(relationships.modularity$modularity)
   return(relationships.mean)}
 
 replies_modularity <- function(linkedDF) {
-  forum.rep <- weightByOccurrence(linkedDF) ## ** MIGHT NOT BE THE RIGHT FUNCTION **
+  forum.rep <- weightByOccurrence(linkedDF)
   replies.graph <- makeGraph(forum.rep)
   replies.modularity <- cluster_louvain(replies.graph)
   replies.mean <- mean(replies.modularity$modularity)
   return(replies.mean)}
 
-makeGraph<-function(data) {
-  g <- graph_from_data_frame(data, directed=F)
-  V(g)$degree_centrality <- centr_degree(g)$res
-  return(g)}
-
-
-
 # NETWORK MEMBERSHIP  -------------------------------------------------------
 getMembership <- function(df) {
-  z <- df %>% select(author, year, class, subreddit)
-  z$date <- z$year
-  z <- as.data.frame(z)
+  z <- df %>% select(author, year, class, subreddit) %>% rename(date=year)
   q <-  z %>% 
     group_by(author, date, class, subreddit) %>%
     summarise(sub_weight=n())
-  red <- q %>% 
-    filter(class=="red")
+  red <- q %>% filter(class=="red")
+  blue <- q %>% filter(class=="blue") 
   red$rwt <- red$sub_weight
-  red <- red %>% select(-sub_weight)
-  blue <- q %>% 
-    filter(class=="blue") 
   blue$bwt <- blue$sub_weight
+  red <- red %>% select(-sub_weight)
   blue <- blue %>% select(-sub_weight)
-  x <- red %>% 
-    full_join(blue, by=c("author", "date"))
-  x <- x %>% 
+  x <- red %>% full_join(blue, by=c("author", "date")) %>% 
     select(author, date, rwt, bwt)
   x$bwt[is.na(x$bwt)] <- 0
   x$rwt[is.na(x$rwt)] <- 0
@@ -200,7 +115,6 @@ getMembership <- function(df) {
   x$prop.blue <- round((x$bwt/x$total),digits=2)
   return(x)}
 
-
 # MODULARITY --------------------------------------------------------------
 
 modByYear <- function(x) {
@@ -208,7 +122,7 @@ modByYear <- function(x) {
   fname <- unique(tmp$subreddit)
   modDF <- data.frame(numeric(0),numeric(0),numeric(0),character(0), stringsAsFactors=F)
   year <- x
-  colnames(modDF) <- c("rel_modularity", "rep_modularity", "subreddit")
+  colnames(modDF) <- c("rel_modularity", "rep_modularity", "year", "subreddit")
   for (i in 1:26) {
     rep.avg <- replies_modularity(tmp[tmp$subreddit==fname[i],])
     rel.avg <- relationships_modularity(tmp[tmp$subreddit==fname[i],])
@@ -217,8 +131,48 @@ modByYear <- function(x) {
   modDF$rep_modularity <- as.numeric(modDF$rep_modularity)
   return(modDF)}
 
+getModByYear <- function() {
+  mdf15 <- modByYear(2015)
+  mdf16 <- modByYear(2016)
+  mdf17 <- modByYear(2017)
+  mdf18 <- modByYear(2018)
+  mdf19 <- modByYear(2019)
+  mdf20 <- modByYear(2020)
+  mdf <- rbind(mdf15, mdf16, mdf17, mdf18, mdf19, mdf20)
+  mdf <- na.omit(mdf)
+  return(mdf)}
+
+
+# DEGREE ------------------------------------------------------------------
+degreeByYear <- function(x) {
+  tmp <- linx %>% filter(year==as.character(x))
+  fname <- unique(tmp$subreddit)
+  degDF <- data.frame(numeric(0), numeric(0),character(0), stringsAsFactors=F)
+  colnames(degDF) <- c("year", "degree", "subreddit")
+  for (i in 1:26) {
+    sub <- tmp[tmp$subreddit==fname[i],]
+    print(unique(sub$subreddit))
+    g <- graph_from_data_frame(sub)
+    fn <- unique(sub$subreddit)
+    deg.avg <- mean(degree(g))
+    degDF[nrow(degDF)+1, ] <- c(x, deg.avg, fn)}
+  degDF$year <- as.numeric(degDF$year)
+  degDF$degree <- as.numeric(degDF$degree)
+  return(degDF)}
+
+getDegreeByYear <- function() {
+  mdf15 <- degreeByYear(2015)
+  mdf16 <- degreeByYear(2016)
+  mdf17 <- degreeByYear(2017)
+  mdf18 <- degreeByYear(2018)
+  mdf19 <- degreeByYear(2019)
+  mdf20 <- degreeByYear(2020)
+  mdf <- rbind(mdf15, mdf16, mdf17, mdf18, mdf19, mdf20)
+  mdf <- na.omit(mdf)
+  return(mdf)}
 
 # USER CROSSOVER  -------------------------------------------------------
+
 xover_single <- function(UYstr,str) {
   ux <- unique(data$author[data$subreddit==str]) 
   uy <- unique(data$author[data$subreddit==UYstr]) 
@@ -290,7 +244,6 @@ subset_quantiles <- function(df, up_q, low_q, perc) {
   d.f$class <- "reddit"
   return(d.f)}
 
-
 combineCommentsAndCanon <- function(commentDF, canonDF) {
   commentDF <- commentDF %>% select(-score)
   canonDF <- canonDF %>% 
@@ -315,8 +268,6 @@ combineCommentsAndCanon <- function(commentDF, canonDF) {
     select(id, subreddit, quantile_group, year, text, author)
   x.clean <- x.clean[!is.na(x.clean$text),]
   return(x.clean)}
-
-
 
 
 

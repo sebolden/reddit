@@ -33,23 +33,12 @@ myc <- c(blue = "#003f5c", red= "#ff6361", equal="#BC5090")
 mv$logscore <- mv$avg.score
 mv$logscore[mv$avg.score < 1] <- 0.5
 
-ggplot(mv, aes(date, prop.red, color=class, group = author, size=avg.score)) +
-  geom_jitter(alpha=.5) +
-  #scale_x_log10() +
-  geom_line(aes(date, prop.red, group=author), alpha=.5, color="black") +
-  scale_color_manual(values=myc) +
-  #facet_wrap(~date) +
-  scale_size(range=c(1,6)) +
-  theme_fivethirtyeight()
-
-
-
 myc <- c(blue = "#003f5c", red= "#ff6361")
-m1 <- mv %>% filter(prop.red>prop.blue)
-m2 <- mv %>% filter(prop.blue>prop.red)
+m1 <- mv %>% group_by(author) %>% filter(sum(rw) > sum(bw)) %>% ungroup()
+m2 <- mv %>% group_by(author) %>% filter(sum(bw) > sum(rw)) %>% ungroup()
 pp <- ggplot() +
-  geom_jitter(data=m1, aes(x=logscore, y=rw, color=class), alpha=.3) +
-  geom_jitter(data=m2, aes(x=logscore, y=bw, color=class), alpha=.3) +
+  geom_jitter(data=m1, aes(x=logscore, y=prop.red, color=class), alpha=.3) +
+  geom_jitter(data=m2, aes(x=logscore, y=prop.red, color=class), alpha=.3) +
   scale_y_log10() +
   scale_x_log10() +
   #geom_line(aes(date, avg.score), alpha=.5, color="black") +
@@ -60,8 +49,11 @@ pp <- ggplot() +
 pp
 
 
+# [1] "author"    "date"      "rw"        "bw"        "avg.score" "total"     "prop.red"  "prop.blue" "class"     "logscore" 
 
-
+ggplot(mv, aes(x=class, y=avg.score)) +
+  geom_boxplot() +
+  theme_bw()
 
 
 
