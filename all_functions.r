@@ -4,10 +4,6 @@ getcsv <- function(string) {
 
 keep_remove <- function(string) {rm(list=setdiff(ls(), string))} 
 
-getComments <- function() {
-  comments <- getcsv('COMMENT_CSVS_BABY.csv')
-  return(comments)}
-
 getColors <- function() {
   color.list <- c(blue = "#003f5c", red = "#ff6361")
   return(color.list)}
@@ -42,12 +38,6 @@ getLinks <- function(df) {
     rename(from = author) %>% 
     rename(to = target_author)
   return(obj)}
-
-getYearlyMetrics <- function() {
-  mod <- getModByYear()
-  deg <- getDegreeByYear()
-  df <- mod %>% left_join(deg, by = c('year', 'subreddit'))
-  return(df)}
 
 makeGraph<-function(data) {
   g <- graph_from_data_frame(data, directed=F)
@@ -91,9 +81,10 @@ replies_modularity <- function(linkedDF) {
   replies.mean <- mean(replies.modularity$modularity)
   return(replies.mean)}
 
-# NETWORK MEMBERSHIP  -------------------------------------------------------
 getMembership <- function(df) {
-  z <- df %>% select(author, year, class, subreddit) %>% rename(date=year)
+  data$date <- as.Date(data$date)
+  data$wk <- paste(week(data$date), "-", year(data$date))
+  z <- df %>% select(author, wk, class, subreddit) %>% rename(date=wk)
   q <-  z %>% 
     group_by(author, date, class, subreddit) %>%
     summarise(sub_weight=n())
@@ -114,6 +105,25 @@ getMembership <- function(df) {
   x$prop.red <- round((x$rwt/x$total),digits=2)
   x$prop.blue <- round((x$bwt/x$total),digits=2)
   return(x)}
+
+getAuthorMovement <- function(membershipDF) {
+  auth <- data %>% select(author, score, wk)
+  auth <- auth %>% group_by(author, wk) %>% summarise(avg.score = mean(score))
+  auth$date <- auth$wk
+  auth <- auth[,-2]
+  mv <- membershipDF %>% group_by(author) %>% mutate(total_red = sum(rwt), total_blue=sum(bwt)) %>% ungroup()
+  mv <- mv %>% filter(total_red > 1) %>% filter(total_blue>1)
+  mv <- mv %>% inner_join(auth, by=c("author", "date"))
+  mv <- mv %>% group_by(author, date) %>% summarise(rw=sum(rwt), bw=sum(bwt),avg.score=unique(avg.score))
+  mv$total <- mv$rw+mv$bw
+  mv$prop.red <- (mv$rw/mv$total)
+  mv$prop.blue <- (mv$bw/mv$total)
+  mv$class[mv$prop.red>mv$prop.blue] <- "red"
+  mv$class[mv$prop.red<mv$prop.blue] <- "blue"
+  mv$class[mv$prop.red==mv$prop.blue] <- "equal"
+  mv$logscore <- mv$avg.score
+  mv$logscore[mv$avg.score < 1] <- 0.5
+  return(mv)}
 
 # MODULARITY --------------------------------------------------------------
 
