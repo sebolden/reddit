@@ -1,0 +1,102 @@
+---
+title: "INSERT_TITLE_HERE"
+ipsum_meta:
+  twitter_card: "Summary info for the Twitter Card"
+  twitter_site: "\\@sitehandle"
+  twitter_creator: "\\@creatorhandle"
+  og_url: "https\\://example.com/open/graph/finalURLfor/this"
+  og_description: "A modest size description of the content"
+  og_image: "https\\://example.com/open/graph/imageURLfor/this"
+output: 
+  hrbrthemes::ipsum:
+    toc: true
+---
+```{r include=FALSE}
+knitr::opts_chunk$set(fig.retina=2)
+```
+
+```{r ipsum_setup, message=FALSE, warning=FALSE, cache=FALSE, echo=FALSE}
+library(hrbrthemes)
+library(tidyverse)
+library(htmlwidgets)
+library(plotly)
+update_geom_font_defaults(font_rc)
+options(scipen=999)
+```
+
+
+```{r, echo = F}
+nw <- read.csv('network_data_subreddit_year.csv', header=T, stringsAsFactors = F)
+nw <- nw %>% rename(average_degree=degree) %>% rename(average_score=avg.score)
+myc <-c(blue = "#00bfb6", red = "#ff8f8f")
+```
+
+
+# A heading might go here
+
+And then probably some words will go here. 
+```{r, echo=F}
+total.comments.year <- ggplot(nw, aes(year, total.comments, fill=sub_group, color=sub_group)) +
+  geom_bar(stat='identity', position='dodge') +
+  facet_wrap(~sub_group) +
+  #scale_color_jcolors(palette = "pal12") +
+  theme_ft_rc() +
+  scale_fill_manual(values=myc) +
+  scale_color_manual(values=myc) +
+  ggtitle("Total number of comments by year") +
+  theme(legend.position="none") 
+
+mod.year <- ggplot(nw, aes(year, total.mod, fill=sub_group, color=sub_group)) +
+  geom_bar(stat='identity', position='dodge') +
+  facet_wrap(~sub_group) +
+  #scale_color_jcolors(palette = "pal12") +
+  theme_ft_rc() +
+  scale_fill_manual(values=myc) +
+  scale_color_manual(values=myc) +
+  ggtitle("Total number of moderator comments by year") +
+  theme(legend.position="none") 
+
+rep.rel.mod <- ggplot(nw, aes(rel_modularity, rep_modularity, size=average_score, color=sub_group, group=subreddit)) +
+  geom_point(alpha=.8) +
+  scale_color_manual(values=myc) +
+  geom_abline(slope=1, intercept=0, color="gray") +
+  facet_wrap(~year) +
+  theme_ft_rc() +
+  ggtitle("Replies modularity vs. relationship modularity by year")
+```
+
+```{r, echo=F}
+ggplotly(total.comments.year)
+ggplotly(mod.year)
+ggplotly(rep.rel.mod)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
